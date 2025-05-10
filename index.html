@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Salary Calculator</title>
+  <style>
+    :root {
+      --bg-color: #1c1c1e;
+      --text-color: #f2f2f7;
+      --accent-color: #0a84ff;
+      --input-bg: #2c2c2e;
+      --border-radius: 12px;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 1em;
+    }
+
+    h1 {
+      font-size: 1.8em;
+      margin-bottom: 1em;
+      font-weight: 600;
+    }
+
+    label {
+      font-size: 1em;
+      margin-bottom: 0.5em;
+      display: block;
+    }
+
+    input, select {
+      background-color: var(--input-bg);
+      color: var(--text-color);
+      border: none;
+      padding: 0.75em 1em;
+      font-size: 1.1em;
+      border-radius: var(--border-radius);
+      width: 100%;
+      max-width: 320px;
+      box-shadow: inset 0 0 0 1px #3a3a3c;
+      margin-bottom: 1em;
+      appearance: none;
+    }
+
+    button {
+      background-color: var(--accent-color);
+      color: white;
+      font-size: 1.1em;
+      padding: 0.7em 1.5em;
+      border: none;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: background 0.3s ease;
+      width: 100%;
+      max-width: 320px;
+      margin-bottom: 1em;
+    }
+
+    button:hover {
+      background-color: #0060df;
+    }
+
+    .result {
+      margin-top: 1.5em;
+      font-size: 1.15em;
+      font-weight: 500;
+      line-height: 1.6em;
+    }
+
+    .lang-toggle {
+      font-size: 0.9em;
+      margin-top: 1em;
+      cursor: pointer;
+      text-decoration: underline;
+      opacity: 0.8;
+    }
+
+    .lang-toggle:hover {
+      opacity: 1;
+    }
+  </style>
+
+  <!-- jsPDF library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <h1 id="title">Калькулятор зарплати</h1>
+
+  <label id="label" for="yearly">Річна зарплата (₴)</label>
+  <input type="number" id="yearly" placeholder="Наприклад, 360000" />
+
+  <label id="regionLabel" for="region">Країна / режим</label>
+  <select id="region">
+    <option value="">– Обрати –</option>
+    <option value="5">🇺🇦 Україна: ФОП 5%</option>
+    <option value="19.5">🇺🇦 Україна: загальна</option>
+    <option value="30">🇺🇸 США: середня</option>
+    <option value="32">🇬🇧 UK</option>
+    <option value="42">🇩🇪 Німеччина</option>
+    <option value="46">🇫🇷 Франція</option>
+    <option value="0">0% (без податків)</option>
+  </select>
+
+  <label for="tax" id="taxLabel">Ставка податку (%)</label>
+  <input type="number" id="tax" placeholder="Наприклад, 19.5" step="0.1" />
+
+  <button onclick="calculate()" id="button">Розрахувати</button>
+
+  <div class="result" id="result"></div>
+
+  <button onclick="generatePDF()" id="pdfButton" style="display:none;">Зберегти в PDF</button>
+
+  <div class="lang-toggle" onclick="toggleLanguage()">🇬🇧 English</div>
+
+  <script>
+    const yearlyInput = document.getElementById('yearly');
+    const taxInput = document.getElementById('tax');
+    const result = document.getElementById('result');
+    const langToggle = document.querySelector('.lang-toggle');
+    const regionSelect = document.getElementById('region');
+    const pdfButton = document.getElementById('pdfButton');
+
+    const translations = {
+      ua: {
+        title: 'Калькулятор зарплати',
+        label: 'Річна зарплата (₴)',
+        regionLabel: 'Країна / режим',
+        taxLabel: 'Ставка податку (%)',
+        placeholder: 'Наприклад, 360000',
+        taxPlaceholder: 'Наприклад, 19.5',
+        button: 'Розрахувати',
+        result: (m, w, d, mNet, wNet, dNet) =>
+          `💼 <strong>${m} грн</strong> / міс<br/>
+           📅 <strong>${w} грн</strong> / тиждень<br/>
+           🕓 <strong>${d} грн</strong> / день<br/><br/>
+           🧾 <em>Після податків:</em><br/>
+           💼 <strong>${mNet} грн</strong> / міс<br/>
+           📅 <strong>${wNet} грн</strong> / тиждень<br/>
+           🕓 <strong>${dNet} грн</strong> / день`,
+        invalid: 'Введіть коректні значення.',
+        langButton: '🇬🇧 English',
+      },
+      en: {
+        title: 'Salary Calculator',
+        label: 'Yearly salary (₴)',
+        regionLabel: 'Country / regime',
+        taxLabel: 'Tax rate (%)',
+        placeholder: 'e.g. 360000',
+        taxPlaceholder: 'e.g. 19.5',
+        button: 'Calculate',
+        result: (m, w, d, mNet, wNet, dNet) =>
+          `💼 <strong>${m} UAH</strong> / month<br/>
+           📅 <strong>${w} UAH</strong> / week<br/>
+           🕓 <strong>${d} UAH</strong> / day<br/><br/>
+           🧾 <em>After tax:</em><br/>
+           💼 <strong>${mNet} UAH</strong> / month<br/>
+           📅 <strong>${wNet} UAH</strong> / week<br/>
+           🕓 <strong>${dNet} UAH</strong> / day`,
+        invalid: 'Please enter valid values.',
+        langButton: '🇺🇦 Українською',
+      }
+    };
+
+    let currentLang = 'ua';
+
+    window.addEventListener('DOMContentLoaded', () => {
+      yearlyInput.value = localStorage.getItem('salaryYearly') || '';
+      taxInput.value = localStorage.getItem('salaryTax') || '';
+      if (yearlyInput.value && taxInput.value) calculate();
+    });
+
+    regionSelect.addEventListener('change', () => {
+      const selected = parseFloat(regionSelect.value);
+      if (!isNaN(selected)) {
+        taxInput.value = selected;
+        localStorage.setItem('salaryTax', selected);
+      }
+    });
+
+    function calculate() {
+      const yearly = parseFloat(yearlyInput.value);
+      const taxRate = parseFloat(taxInput.value);
+      if (!isNaN(yearly) && yearly >= 0 && !isNaN(taxRate) && taxRate >= 0 && taxRate < 100) {
+        const taxMultiplier = 1 - (taxRate / 100);
+        const [monthly, weekly, daily] = [
+          yearly / 12,
+          yearly / 52,
+          yearly / 260
+        ];
+        const netYearly = yearly * taxMultiplier;
+        const [monthlyNet, weeklyNet, dailyNet] = [
+          netYearly / 12,
+          netYearly / 52,
+          netYearly / 260
+        ];
+        result.innerHTML = translations[currentLang].result(
+          monthly.toFixed(2),
+          weekly.toFixed(2),
+          daily.toFixed(2),
+          monthlyNet.toFixed(2),
+          weeklyNet.toFixed(2),
+          dailyNet.toFixed(2)
+        );
+        pdfButton.style.display = 'inline-block'; // Show PDF button
+        localStorage.setItem('salaryYearly', yearly);
+        localStorage.setItem('salaryTax', taxRate);
+      } else {
+        result.textContent = translations[currentLang].invalid;
+        pdfButton.style.display = 'none'; // Hide PDF button if invalid input
+      }
+    }
+
+    function generatePDF() {
+      const doc = new jsPDF();
+      doc.setFont("helvetica", "normal");
+      doc.text("Salary Calculator Report", 20, 20);
+      doc.text(`Annual Salary: ${yearlyInput.value} UAH`, 20, 30);
+      doc.text(`Tax Rate: ${taxInput.value}%`, 20, 40);
+      doc.text(result.innerHTML.replace(/<br>/g, "\n").replace(/<[^>]*>/g, ""), 20, 50);
+
+      doc.save("salary_calculator_report.pdf");
+    }
+
+    function toggleLanguage() {
+      currentLang = currentLang === 'ua' ? 'en' : 'ua';
+      const t = translations[currentLang];
+      document.getElementById('title').textContent = t.title;
+      document.getElementById('label').textContent = t.label;
+      document.getElementById('regionLabel').textContent = t.regionLabel;
+      document.getElementById('taxLabel').textContent = t.taxLabel;
+      yearlyInput.placeholder = t.placeholder;
+      taxInput.placeholder = t.taxPlaceholder;
+      document.getElementById('button').textContent = t.button;
+      langToggle.textContent = t.langButton;
+      calculate();
+    }
+  </script>
+</body>
+</html>
