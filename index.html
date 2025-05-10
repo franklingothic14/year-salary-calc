@@ -91,8 +91,6 @@
       opacity: 1;
     }
   </style>
-
-  <!-- jsPDF library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
@@ -101,16 +99,16 @@
   <label id="label" for="yearly">Річна зарплата (₴)</label>
   <input type="number" id="yearly" placeholder="Наприклад, 360000" />
 
-  <label id="regionLabel" for="region">Країна / режим</label>
+  <label id="regionLabel" for="region">Країна</label>
   <select id="region">
     <option value="">– Обрати –</option>
     <option value="5">🇺🇦 Україна: ФОП 5%</option>
     <option value="19.5">🇺🇦 Україна: загальна</option>
-    <option value="30">🇺🇸 США: середня</option>
+    <option value="30">🇺🇸 USA: average</option>
     <option value="32">🇬🇧 UK</option>
-    <option value="42">🇩🇪 Німеччина</option>
-    <option value="46">🇫🇷 Франція</option>
-    <option value="0">0% (без податків)</option>
+    <option value="42">🇩🇪 Germany</option>
+    <option value="46">🇫🇷 France</option>
+    <option value="0">0% (no tax)</option>
   </select>
 
   <label for="tax" id="taxLabel">Ставка податку (%)</label>
@@ -120,8 +118,6 @@
 
   <div class="result" id="result"></div>
 
-  <button onclick="generatePDF()" id="pdfButton" style="display:none;">Зберегти в PDF</button>
-
   <div class="lang-toggle" onclick="toggleLanguage()">🇬🇧 English</div>
 
   <script>
@@ -130,13 +126,12 @@
     const result = document.getElementById('result');
     const langToggle = document.querySelector('.lang-toggle');
     const regionSelect = document.getElementById('region');
-    const pdfButton = document.getElementById('pdfButton');
 
     const translations = {
       ua: {
         title: 'Калькулятор зарплати',
         label: 'Річна зарплата (₴)',
-        regionLabel: 'Країна / режим',
+        regionLabel: 'Країна',
         taxLabel: 'Ставка податку (%)',
         placeholder: 'Наприклад, 360000',
         taxPlaceholder: 'Наприклад, 19.5',
@@ -155,7 +150,7 @@
       en: {
         title: 'Salary Calculator',
         label: 'Yearly salary (₴)',
-        regionLabel: 'Country / regime',
+        regionLabel: 'Country',
         taxLabel: 'Tax rate (%)',
         placeholder: 'e.g. 360000',
         taxPlaceholder: 'e.g. 19.5',
@@ -213,24 +208,9 @@
           weeklyNet.toFixed(2),
           dailyNet.toFixed(2)
         );
-        pdfButton.style.display = 'inline-block'; // Show PDF button
-        localStorage.setItem('salaryYearly', yearly);
-        localStorage.setItem('salaryTax', taxRate);
       } else {
         result.textContent = translations[currentLang].invalid;
-        pdfButton.style.display = 'none'; // Hide PDF button if invalid input
       }
-    }
-
-    function generatePDF() {
-      const doc = new jsPDF();
-      doc.setFont("helvetica", "normal");
-      doc.text("Salary Calculator Report", 20, 20);
-      doc.text(`Annual Salary: ${yearlyInput.value} UAH`, 20, 30);
-      doc.text(`Tax Rate: ${taxInput.value}%`, 20, 40);
-      doc.text(result.innerHTML.replace(/<br>/g, "\n").replace(/<[^>]*>/g, ""), 20, 50);
-
-      doc.save("salary_calculator_report.pdf");
     }
 
     function toggleLanguage() {
@@ -240,12 +220,4 @@
       document.getElementById('label').textContent = t.label;
       document.getElementById('regionLabel').textContent = t.regionLabel;
       document.getElementById('taxLabel').textContent = t.taxLabel;
-      yearlyInput.placeholder = t.placeholder;
-      taxInput.placeholder = t.taxPlaceholder;
-      document.getElementById('button').textContent = t.button;
-      langToggle.textContent = t.langButton;
-      calculate();
-    }
-  </script>
-</body>
-</html>
+      document.getElementById('yearly').placeholder
